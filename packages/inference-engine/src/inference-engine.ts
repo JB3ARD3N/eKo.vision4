@@ -32,12 +32,14 @@ import type {
   PrecisionMode,
   OptimizationTechnique
 } from './types.js';
+import { BackendManager } from './kernel-backend.js';
 
 export class InferenceEngine {
   private config: InferenceConfig;
   private modelSpecs: Map<ModelSize, ModelSpec>;
   private cache: Map<string, CacheEntry>;
   private stats: InferenceStats;
+  private backendManager: BackendManager;
 
   // Simulated optimization multipliers (real implementation would use actual kernels)
   private optimizationMultipliers = {
@@ -79,6 +81,15 @@ export class InferenceEngine {
     this.modelSpecs = this.initializeModelSpecs();
     this.cache = new Map();
     this.stats = this.initializeStats();
+    this.backendManager = new BackendManager();
+  }
+
+  /**
+   * Initialize the engine and load backends
+   * Call this before using infer()
+   */
+  async initialize(): Promise<void> {
+    await this.backendManager.initialize();
   }
 
   /**
@@ -192,60 +203,19 @@ export class InferenceEngine {
 
   /**
    * Execute inference with all optimizations applied
+   * Now delegates to backend for actual execution
    */
   private async executeInference(
     request: InferenceRequest,
     routing: RoutingDecision
   ): Promise<InferenceResponse> {
-    const startTime = Date.now();
-    const modelSpec = this.modelSpecs.get(routing.modelSize)!;
+    // Select optimal backend for this routing decision
+    const backend = this.backendManager.selectBackend(routing);
 
-    // Simulate optimized inference (real implementation would call actual kernels)
-    const breakdown = {
-      routing: 2, // Router decision time
-      kvCacheLookup: 5, // Check for partial cache hits
-      modelForward: 0,
-      decoding: 0,
-      postprocessing: 3
-    };
+    // Execute with selected backend
+    const result = await backend.execute(request, routing);
 
-    // Calculate actual latency with optimizations
-    const baseLatency = modelSpec.firstTokenLatencyMs;
-    const optimizationSpeedup = this.calculateOptimizationSpeedup(routing.optimizations);
-    const actualLatency = baseLatency / optimizationSpeedup;
-
-    breakdown.modelForward = actualLatency * 0.7;
-    breakdown.decoding = actualLatency * 0.3;
-
-    // Simulate token generation
-    const tokensGenerated = request.maxTokens;
-    const totalLatency = Date.now() - startTime + actualLatency; // Add simulated time
-
-    // Calculate speedup vs baseline (fp32, no optimizations)
-    const baselineLatency = this.modelSpecs.get('large')!.firstTokenLatencyMs;
-    const speedupVsBaseline = baselineLatency / actualLatency;
-
-    // Calculate cost
-    const baseCost = modelSpec.costPer1kTokens * (tokensGenerated / 1000);
-    const costReduction = this.calculateCostReduction(routing.precision, routing.optimizations);
-    const actualCost = baseCost * (1 - costReduction);
-
-    return {
-      text: this.generateSampleResponse(request.prompt, tokensGenerated),
-      modelUsed: routing.modelSize,
-      precision: routing.precision,
-      latencyMs: totalLatency,
-      firstTokenMs: breakdown.kvCacheLookup + breakdown.modelForward * 0.1,
-      tokensGenerated,
-      tokensPerSecond: tokensGenerated / (totalLatency / 1000),
-      cacheHitRate: 0.0, // No cache for new requests
-      optimizationsUsed: routing.optimizations,
-      estimatedQuality: modelSpec.quality,
-      cost: actualCost,
-      speedupVsBaseline,
-      fromCache: false,
-      breakdown
-    };
+    return result;
   }
 
   /**
@@ -608,10 +578,32 @@ export class InferenceEngine {
   }
 
   /**
+   * Get available backends
+   */
+  getAvailableBackends() {
+    return this.backendManager.getAvailableBackends();
+  }
+
+  /**
+   * Get metrics for all backends
+   */
+  getBackendMetrics() {
+    return this.backendManager.getAllMetrics();
+  }
+
+  /**
    * Clear cache
    */
   clearCache(): void {
     this.cache.clear();
+  }
+
+  /**
+   * Cleanup engine and backends
+   */
+  async cleanup(): Promise<void> {
+    this.cache.clear();
+    await this.backendManager.cleanup();
   }
 
   /**

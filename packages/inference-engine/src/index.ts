@@ -18,6 +18,16 @@
 
 export { InferenceEngine } from './inference-engine.js';
 
+export {
+  BackendManager,
+  SimulatedBackend,
+  FlashAttentionBackend,
+  TensorRTBackend,
+  VLLMBackend
+} from './kernel-backend.js';
+
+export type { KernelBackend, KernelMetrics } from './kernel-backend.js';
+
 export type {
   InferenceConfig,
   InferenceRequest,
