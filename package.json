@@ -1,0 +1,27 @@
+{
+  "name": "project-mikedrop",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Planetary-scale AI infrastructure with regenerative economics",
+  "scripts": {
+    "dev": "pnpm --filter \"./apps/*\" dev",
+    "build": "pnpm --filter \"./packages/*\" build && pnpm --filter \"./apps/*\" build",
+    "test": "pnpm --filter \"./packages/*\" test",
+    "typecheck": "pnpm --recursive --parallel typecheck",
+    "lint": "pnpm --recursive --parallel lint"
+  },
+  "keywords": [
+    "ai",
+    "orchestration",
+    "provenance",
+    "regenerative-economics",
+    "covenant"
+  ],
+  "author": "JB3ARD3N",
+  "license": "MIT",
+  "devDependencies": {
+    "@types/node": "^20.10.0",
+    "typescript": "^5.3.3",
+    "tsup": "^8.0.1"
+  }
+}
