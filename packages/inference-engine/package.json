@@ -1,0 +1,33 @@
+{
+  "name": "@mikedrop/inference-engine",
+  "version": "0.1.0",
+  "description": "High-performance inference engine with 100x optimization through FlashAttention, quantization, and smart routing",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "test": "vitest",
+    "test:watch": "vitest --watch",
+    "type-check": "tsc --noEmit"
+  },
+  "keywords": [
+    "inference",
+    "optimization",
+    "flash-attention",
+    "quantization",
+    "model-serving",
+    "gpu-acceleration"
+  ],
+  "dependencies": {
+    "@mikedrop/types": "workspace:*",
+    "@mikedrop/router": "workspace:*",
+    "@mikedrop/world-model": "workspace:*",
+    "onnxruntime-node": "^1.19.2"
+  },
+  "devDependencies": {
+    "@types/node": "^20.12.7",
+    "typescript": "^5.4.5",
+    "vitest": "^1.6.0"
+  }
+}
