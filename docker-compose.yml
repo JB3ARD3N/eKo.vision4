@@ -1,0 +1,97 @@
+version: '3.8'
+
+services:
+  # PostgreSQL - Structured data storage
+  postgres:
+    image: postgres:16-alpine
+    container_name: mikedrop-postgres
+    environment:
+      POSTGRES_DB: mikedrop
+      POSTGRES_USER: mikedrop
+      POSTGRES_PASSWORD: dev_password_change_in_production
+      POSTGRES_INITDB_ARGS: "-E UTF8"
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./scripts/init-postgres.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U mikedrop"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - mikedrop-network
+
+  # Memgraph - High-performance graph database
+  memgraph:
+    image: memgraph/memgraph-platform:latest
+    container_name: mikedrop-memgraph
+    ports:
+      - "7687:7687"  # Bolt protocol (Cypher queries)
+      - "3000:3000"  # Memgraph Lab UI
+      - "7444:7444"  # Monitoring
+    volumes:
+      - memgraph_data:/var/lib/memgraph
+      - ./scripts/init-memgraph.cypher:/usr/lib/memgraph/init.cypher
+    environment:
+      - MEMGRAPH_CONFIG=/etc/memgraph/memgraph.conf
+    command: ["--log-level=WARNING", "--also-log-to-stderr"]
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:3000"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - mikedrop-network
+
+  # Qdrant - Vector database for semantic search
+  qdrant:
+    image: qdrant/qdrant:latest
+    container_name: mikedrop-qdrant
+    ports:
+      - "6333:6333"  # HTTP API
+      - "6334:6334"  # gRPC API
+    volumes:
+      - qdrant_data:/qdrant/storage
+    environment:
+      - QDRANT__SERVICE__HTTP_PORT=6333
+      - QDRANT__SERVICE__GRPC_PORT=6334
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:6333/healthz"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - mikedrop-network
+
+  # Redis - Caching layer for embeddings and routing decisions
+  redis:
+    image: redis:7-alpine
+    container_name: mikedrop-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes --maxmemory 512mb --maxmemory-policy allkeys-lru
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - mikedrop-network
+
+volumes:
+  postgres_data:
+    driver: local
+  memgraph_data:
+    driver: local
+  qdrant_data:
+    driver: local
+  redis_data:
+    driver: local
+
+networks:
+  mikedrop-network:
+    driver: bridge

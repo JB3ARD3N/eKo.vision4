@@ -7,8 +7,13 @@
     "dev": "pnpm --filter \"./apps/*\" dev",
     "build": "pnpm --filter \"./packages/*\" build && pnpm --filter \"./apps/*\" build",
     "test": "pnpm --filter \"./packages/*\" test",
+    "test:coverage": "pnpm --filter \"./packages/*\" test:coverage",
     "typecheck": "pnpm --recursive --parallel typecheck",
-    "lint": "pnpm --recursive --parallel lint"
+    "lint": "pnpm --recursive --parallel lint",
+    "db:up": "docker-compose up -d",
+    "db:down": "docker-compose down",
+    "db:reset": "docker-compose down -v && docker-compose up -d",
+    "example:world-model": "tsx examples/world-model-integration.ts"
   },
   "keywords": [
     "ai",
